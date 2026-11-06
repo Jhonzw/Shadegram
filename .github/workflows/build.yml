@@ -51,6 +51,8 @@ jobs:
           [ -n "$XCODE" ] || { echo "::error::Nenhum Xcode 27 nesta máquina"; exit 1; }
           sudo xcode-select -s "$XCODE/Contents/Developer"
           xcodebuild -version
+          # A imagem do runner vem sem o compilador de shaders Metal.
+          xcrun -f metal >/dev/null 2>&1 && xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
 
       - name: Liberar disco
         run: |
