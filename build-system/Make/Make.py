@@ -304,7 +304,9 @@ class BazelCommandLine:
             combined_arguments += ['--//Telegram:disableProvisioningProfiles']
 
         if getattr(self, 'shade_disable_extensions', False):
-            combined_arguments += ['--//Telegram:disableExtensions']
+            # Sideload: sem extensões e sem perfil (o perfil falso do repo venceu em 30/10/2026;
+            # o Sideloadly reassina o app com o Apple ID de qualquer forma).
+            combined_arguments += ['--//Telegram:disableExtensions', '--//Telegram:disableProvisioningProfiles']
 
         combined_arguments += self.common_args
         combined_arguments += self.common_build_args
