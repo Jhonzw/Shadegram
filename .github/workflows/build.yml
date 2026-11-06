@@ -43,6 +43,15 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive --depth 1 --jobs 8
 
+      - name: Aceitar perfil falso vencido
+        run: |
+          # O perfil "fake-codesigning" do repo oficial venceu em 30/10/2026. Ele só serve para empacotar:
+          # o Sideloadly reassina o app com o Apple ID. Desliga a checagem de validade do rules_apple.
+          set -euo pipefail
+          F=build-system/bazel-rules/rules_apple/tools/plisttool/plisttool.py
+          sed -i '' 's/    if expire and expire < datetime.datetime.now():/    if False and expire and expire < datetime.datetime.now():/' "$F"
+          grep -n "if False and expire" "$F"
+
       - name: Selecionar Xcode 27
         run: |
           set -euo pipefail
