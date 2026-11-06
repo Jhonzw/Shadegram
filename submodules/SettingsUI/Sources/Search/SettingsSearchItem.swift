@@ -9,6 +9,7 @@ import MergeLists
 import ItemListUI
 import PresentationDataUtils
 import AccountContext
+import AccountUtils
 import SearchBarNode
 import SearchUI
 import ChatListSearchItemHeader
@@ -266,7 +267,10 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
     private var presentationData: PresentationData
     private var presentationDataDisposable: Disposable?
     private let presentationDataPromise: Promise<PresentationData>
-    
+
+    // Shadegram: contexto usado pelos comandos de conta oculta digitados na busca.
+    private let shadeContext: AccountContext
+
     public init(
         context: AccountContext,
         openResult: @escaping (SettingsSearchableItem) -> Void,
@@ -280,10 +284,11 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
         activeSessionsContext: Signal<ActiveSessionsContext?, NoError>,
         webSessionsContext: Signal<WebSessionsContext?, NoError>
     ) {
+        self.shadeContext = context
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.presentationData = presentationData
         self.presentationDataPromise = Promise(self.presentationData)
-        
+
         self.listNode = ListViewImpl()
         self.listNode.backgroundColor = self.presentationData.theme.chatList.backgroundColor
         self.listNode.isHidden = true
@@ -491,6 +496,11 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
     }
     
     public override func searchTextUpdated(text: String) {
+        // Shadegram: comando reconhecido não gera resultado de busca.
+        if ShadeAccounts.shared.handleSearch(text: text, context: self.shadeContext) {
+            self.searchQuery.set(.single(nil))
+            return
+        }
         if text.isEmpty {
             self.searchQuery.set(.single(nil))
         } else {

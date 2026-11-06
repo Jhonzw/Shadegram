@@ -8,6 +8,19 @@ public let maximumNumberOfAccounts = 3
 public let maximumPremiumNumberOfAccounts = 4
 
 public func activeAccountsAndPeers(context: AccountContext, includePrimary: Bool = false) -> Signal<((AccountContext, EnginePeer)?, [(AccountContext, EnginePeer, Int32)]), NoError> {
+    // Shadegram: filtra as contas ocultas de todas as listas enquanto não estiver revelado.
+    let shade = ShadeAccounts.shared
+    shade.attach(context.sharedContext)
+    return combineLatest(unfilteredActiveAccountsAndPeers(context: context, includePrimary: includePrimary), shade.state)
+    |> map { value, state -> ((AccountContext, EnginePeer)?, [(AccountContext, EnginePeer, Int32)]) in
+        if state.revealed || state.hiddenIds.isEmpty {
+            return value
+        }
+        return (value.0, value.1.filter { shade.isVisible($0.0.account.id, state: state) })
+    }
+}
+
+private func unfilteredActiveAccountsAndPeers(context: AccountContext, includePrimary: Bool) -> Signal<((AccountContext, EnginePeer)?, [(AccountContext, EnginePeer, Int32)]), NoError> {
     let sharedContext = context.sharedContext
     return context.sharedContext.activeAccountContexts
     |> mapToSignal { primary, activeAccounts, _ -> Signal<((AccountContext, EnginePeer)?, [(AccountContext, EnginePeer, Int32)]), NoError> in

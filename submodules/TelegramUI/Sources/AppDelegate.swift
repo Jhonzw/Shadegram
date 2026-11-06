@@ -319,7 +319,10 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let appGroupName = "group.\(baseAppBundleId)"
 
         let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
-        configuration.sharedContainerIdentifier = appGroupName
+        // Shadegram: instalação com Apple ID grátis não tem App Group.
+        if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName) != nil {
+            configuration.sharedContainerIdentifier = appGroupName
+        }
         configuration.isDiscretionary = false
         let session = URLSession(configuration: configuration, delegate: self, delegateQueue: .main)
         self.urlSessions.append(session)
@@ -696,9 +699,16 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             networkEngineFactory: RustNetworkEngineFactory()
         )
         
-        guard let appGroupUrl = maybeAppGroupUrl else {
-            self.mainWindow?.presentNative(UIAlertController(title: nil, message: "Error 2", preferredStyle: .alert))
-            return true
+        // Shadegram: sem App Group (Apple ID grátis) o app original parava em "Error 2".
+        // Usa a pasta Documents do próprio app no lugar.
+        let appGroupUrl: URL
+        if let existing = maybeAppGroupUrl {
+            appGroupUrl = existing
+        } else {
+            let documentsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fallbackUrl = documentsUrl.appendingPathComponent("telegram-shared", isDirectory: true)
+            let _ = try? FileManager.default.createDirectory(at: fallbackUrl, withIntermediateDirectories: true, attributes: nil)
+            appGroupUrl = fallbackUrl
         }
         
         var isDebugConfiguration = false
